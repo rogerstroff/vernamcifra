@@ -23,6 +23,23 @@ public class VernamCifra {
         return xored;
     }
 
+    //Gera nome do arquivo de saída
+    private static String nomeSaida(String arquivo, String sufixo) {
+        Path path = Paths.get(arquivo);
+        String nomeOriginal = path.getFileName().toString();
+
+        int ponto = nomeOriginal.lastIndexOf('.');
+        String nomeBase = (ponto > 0) ? nomeOriginal.substring(0, ponto) : nomeOriginal;
+        String extensao = (ponto > 0) ? nomeOriginal.substring(ponto) : "";
+
+        Path parent = path.getParent();
+        if (parent != null) {
+            return parent.resolve(nomeBase + sufixo + extensao).toString();
+        } else {
+            return nomeBase + sufixo + extensao;
+        }
+    }
+
     //Criptografar
     private static void criptografar(String arquivo, String senha) throws Exception {
         byte[] conteudo = Files.readAllBytes(Paths.get(arquivo));
@@ -39,8 +56,9 @@ public class VernamCifra {
         out.write(salt);
         out.write(cifrado);
 
-        Files.write(Paths.get("arquivo_cifrado.txt"), Base64.getEncoder().encode(out.toByteArray()));
-        System.out.println("Arquivo cifrado gerado: arquivo_cifrado.txt");
+        String arquivoSaida = nomeSaida(arquivo, "_cifrado");
+        Files.write(Paths.get(arquivoSaida), Base64.getEncoder().encode(out.toByteArray()));
+        System.out.println("Arquivo cifrado gerado: " + arquivoSaida);
     }
 
     //Decriptografar
@@ -58,8 +76,9 @@ public class VernamCifra {
         byte[] chave = gerarChave(senha, salt, 256);
         byte[] decifrado = cifrar(cifrado, chave);
 
-        Files.write(Paths.get("arquivo_decifrado.txt"), decifrado);
-        System.out.println("Arquivo decifrado gerado: arquivo_decifrado.txt");
+        String arquivoSaida = nomeSaida(arquivo, "_decifrado");
+        Files.write(Paths.get(arquivoSaida), decifrado);
+        System.out.println("Arquivo decifrado gerado: " + arquivoSaida);
     }
 
     public static void main(String[] args) {
@@ -72,6 +91,11 @@ public class VernamCifra {
             String arquivo = args[0];
             String senha = args[1];
             String modo = args[2].toLowerCase();
+
+            if (!Files.exists(Paths.get(arquivo))) {
+                System.err.println("Erro: o arquivo não existe: " + arquivo);
+                System.exit(1);
+            }
 
             if (modo.equals("criptografar")) {
                 criptografar(arquivo, senha);
